@@ -1,0 +1,73 @@
+def getOs() {
+  if (isUnix()) {
+    def uname = sh script: 'uname', returnStdout: true
+    if (uname.startsWith("Darwin")) {
+      return "macos"
+    }
+    return "linux"
+  }
+  return "windows"
+}
+
+pipeline {
+  agent { label 'windows' }
+  environment {
+    // This has been set globally on the Jenkins Node:
+    //PATH = "C:\\Program Files\\Git\\bin;C:\\Program Files\\Git\\usr\\bin;C:\\Users\\Jenkins\\AppData\\Local\\Programs\\Python\\Python39;C:\\Windows\\System32"
+    // Extract concise branch name.
+    BRANCH = GIT_BRANCH.substring(GIT_BRANCH.lastIndexOf('/') + 1, GIT_BRANCH.length())
+  }
+  stages {
+    stage('libs') {
+      steps {
+        bat 'python -m venv venv'
+        bat 'venv\\Scripts\\activate.bat & pip install -r requirements.txt'
+      }
+    }
+    stage('exe') {
+      steps {
+        bat 'build-app.bat'
+      }
+    }
+    stage('upload') {
+      steps {
+        script {
+          def artifacts = [
+            ['relay-control-'+getOs(), 'dist/relay-control']
+          ]
+          artifacts.each {
+            withAWS(credentials:'qdevil-aws-token', region:'eu-west-1') {
+              s3Upload(
+                file: it[1],
+                bucket: 'qdevil-artifacts',
+                path: "numato-usb-relay-module/${env.BRANCH}/${it[0]}",
+                metadatas: ["repo:${env.JOB_NAME}", "branch:${env.BRANCH}", "commit:${env.GIT_COMMIT}"]
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+  post {
+    success {
+      slackSend(
+        color: 'good',
+        message: "${env.JOB_NAME} (branch ${env.BRANCH}) succeeded"
+      )
+    }
+    failure {
+      slackSend(
+        color: 'bad',
+        message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} FAILED (<${env.BUILD_URL}/console|Output>)"
+      )
+    }
+    changed {
+      slackSend(
+        channel: 'ci-change',
+        color: (currentBuild.result == 'SUCCESS') ? 'good' : 'bad',
+        message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} changed to ${currentBuild.result}"
+      )
+    }
+  }
+}
