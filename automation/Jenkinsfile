@@ -1,0 +1,87 @@
+def getOs() {
+  if (isUnix()) {
+    def uname = sh script: 'uname', returnStdout: true
+    if (uname.startsWith("Darwin")) {
+      return "macos"
+    }
+    return "linux"
+  }
+  return "windows"
+}
+
+pipeline {
+  agent { docker { image 'python:3' } }
+  environment {
+    // HOME defaults to '/' for some reason.
+    HOME = "$WORKSPACE"
+    // Extract concise branch name.
+    BRANCH = GIT_BRANCH.substring(GIT_BRANCH.lastIndexOf('/') + 1, GIT_BRANCH.length())
+  }
+  parameters {
+    booleanParam(name: 'clean', description: 'Clean workspace instead of build')
+  }
+  stages {
+    stage('clean') {
+      when { expression { params.clean } }
+      steps {
+        echo "Cleaning branch ${env.BRANCH}"
+        cleanWs()
+      }
+    }
+    stage('libs') {
+      when { expression { !params.clean } }
+      steps {
+        sh 'python -m venv venv'
+        sh '. venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt'
+      }
+    }
+    stage('exe') {
+      when { expression { !params.clean } }
+      steps {
+        sh './build-app.sh'
+      }
+    }
+    stage('upload') {
+      when { expression { !params.clean } }
+      steps {
+        script {
+          def artifacts = [
+            ['relay-control-'+getOs(), 'dist/relay-control']
+          ]
+          artifacts.each {
+            withAWS(credentials:'qdevil-aws-token', region:'eu-west-1') {
+              s3Upload(
+                file: it[1],
+                bucket: 'qdevil-artifacts',
+                path: "numato-usb-relay-module/${env.BRANCH}/${it[0]}",
+                metadatas: ["repo:${env.JOB_NAME}", "branch:${env.BRANCH}", "commit:${env.GIT_COMMIT}"]
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+  post {
+    success {
+      slackSend(
+        color: 'good',
+        message: "${env.JOB_NAME} (branch ${env.BRANCH}) succeeded"
+      )
+    }
+    failure {
+      slackSend(
+        color: 'bad',
+        message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} FAILED (<${env.BUILD_URL}/console|Output>)"
+      )
+    }
+    changed {
+      slackSend(
+        channel: 'ci-change',
+        color: (currentBuild.result == 'SUCCESS') ? 'good' : 'bad',
+        message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} changed to ${currentBuild.result}"
+      )
+    }
+  }
+}
+

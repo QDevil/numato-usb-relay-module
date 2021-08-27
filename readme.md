@@ -32,8 +32,6 @@ optional arguments:
 
 ### MacOS / Linux
 
-Make sure `coreutils` is installed, and then
-
     $ build-app.sh
 
 ### Windows
