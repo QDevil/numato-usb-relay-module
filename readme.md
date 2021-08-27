@@ -4,11 +4,18 @@ This is a python implementation of a command-line interface to [Numato two-chann
 
 ## First-time setup on a new machine
 
+### MacOS / Linux
     $ python3 -m venv venv
     $ source venv/bin/activate
     $ pip install --upgrade pip
     $ pip install -r requirements.txt
     
+### Windows
+
+    PS> python3 -m venv venv
+    PS> venv\Scripts\activate.bat & ^
+        pip install -r requirements.txt
+
 ## Run directly
 
     $ source venv/bin/activate
