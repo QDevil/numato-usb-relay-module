@@ -33,7 +33,7 @@ pipeline {
       steps {
         script {
           def artifacts = [
-            ['relay-control-'+getOs(), 'dist/relay-control']
+            ['relay-control.exe', 'dist/relay-control.exe']
           ]
           artifacts.each {
             withAWS(credentials:'qdevil-aws-token', region:'eu-west-1') {
