@@ -47,23 +47,21 @@ class Connection:
         return str(raw).replace('\n\r', '\r\n')
 
     def _log_line(self, line):
-        print(datetime.now().strftime('%H:%M:%S'), end=': ')
+        print(datetime.now().strftime('%H:%M:%S'), end=' ')
         print(line, flush=True)
 
 
-class Apps:
+class App:
     def __init__(self, verbosity=0):
         self._verbosity = verbosity
 
     def connect(self):
         self._connection = Connection(find_serial_device(),
                                       verbosity=self._verbosity)
+        return self
 
-    def read(self):
-        state = self._read(0)
-        print('on' if state else 'off', end='/')
-        state = self._read(1)
-        print('on' if state else 'off')
+    def show_state(self):
+        print(f'{self.read(0)}/{self.read(1)}')
 
     def set_state(self, state):
         states = state.split('/')
@@ -71,7 +69,10 @@ class Apps:
         self._set_state(1, states[1])
         self._connection.receive()
 
-    def _read(self, relay):
+    def read(self, relay):
+        return 'on' if self._get(relay) else 'off'
+
+    def _get(self, relay):
         self._connection.send(f'relay read {relay}')
         response = self._connection.receive()
         state = 'on' in response
@@ -87,10 +88,10 @@ class Main():
 
     def run(self):
         self._parse_args()
-        app = Apps(self._args.verbose)
+        app = App(self._args.verbose)
         app.connect()
         if self._args.read:
-            return app.read()
+            return app.show_state()
         app.set_state(self._args.set_state)
 
     def _parse_args(self):
