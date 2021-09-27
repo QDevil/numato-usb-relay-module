@@ -51,23 +51,23 @@ pipeline {
   }
   post {
     success {
-      slackSend(
-        color: 'good',
-        message: "${env.JOB_NAME} (branch ${env.BRANCH}) succeeded"
-      )
+      // slackSend(
+      //   color: 'good',
+      //   message: "${env.JOB_NAME} (branch ${env.BRANCH}) succeeded"
+      // )
     }
     failure {
-      slackSend(
-        color: 'bad',
-        message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} FAILED (<${env.BUILD_URL}/console|Output>)"
-      )
+      // slackSend(
+      //   color: 'bad',
+      //   message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} FAILED (<${env.BUILD_URL}/console|Output>)"
+      // )
     }
     changed {
-      slackSend(
-        channel: 'ci-change',
-        color: (currentBuild.result == 'SUCCESS') ? 'good' : 'bad',
-        message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} changed to ${currentBuild.result}"
-      )
+      // slackSend(
+      //   channel: 'ci-change',
+      //   color: (currentBuild.result == 'SUCCESS') ? 'good' : 'bad',
+      //   message: "${env.JOB_NAME} (branch ${env.BRANCH}) build ${env.BUILD_NUMBER} changed to ${currentBuild.result}"
+      // )
     }
   }
 }
