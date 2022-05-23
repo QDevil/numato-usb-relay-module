@@ -47,3 +47,9 @@ optional arguments:
 
     PS> pip install -r requirements-dev.txt
     PS> build-app.bat
+
+## Trouble shooting
+
+To see all serial devices connected to the computer:
+
+    $ python -m serial.tools.list_ports -v
