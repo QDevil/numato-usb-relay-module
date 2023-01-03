@@ -21,7 +21,7 @@ pipeline {
     stage('libs') {
       steps {
         bat 'python -m venv venv'
-        bat 'venv\\Scripts\\activate.bat & pip install -r requirements-dev.txt'
+        bat 'venv\\Scripts\\activate.bat & pip install wheel & pip install -r requirements-dev.txt'
       }
     }
     stage('exe') {
